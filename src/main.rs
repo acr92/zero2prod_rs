@@ -1,6 +1,6 @@
 use actix_web::{App, HttpServer};
 use sqlx::PgPool;
-use webserver::configuration::{get_configuration, Settings};
+use webserver::configuration::get_configuration;
 use webserver::telemetry::{get_subscriber, init_subscriber};
 
 #[actix_web::main]

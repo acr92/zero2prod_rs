@@ -1,9 +1,18 @@
 [package]
-name = "zero2prod_rs"
+name = "zero2prod"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "zero2prod"
 
 [dependencies]
 actix-web = "4.3.1"
+actix-web-codegen = "4.2.0"
+sqlx = { version = "0.6.3", features = ["postgres", "runtime-actix-rustls"] }
+tokio = { version = "1.26.0", features = ["macros", "tracing", "rt-multi-thread"] }
+tracing = { version = "0.1.37", features = ["log"] }

@@ -3,16 +3,16 @@ name = "zero2prod"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-path = "src/lib.rs"
-
-[[bin]]
-path = "src/main.rs"
-name = "zero2prod"
-
 [dependencies]
+actix-web = { workspace = true }
+actix-web-codegen = { workspace = true }
+webserver = { path = "webserver" }
+
+[workspace]
+members = [
+    "webserver"
+]
+
+[workspace.dependencies]
 actix-web = "4.3.1"
 actix-web-codegen = "4.2.0"
-sqlx = { version = "0.6.3", features = ["postgres", "runtime-actix-rustls"] }
-tokio = { version = "1.26.0", features = ["macros", "tracing", "rt-multi-thread"] }
-tracing = { version = "0.1.37", features = ["log"] }

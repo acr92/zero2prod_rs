@@ -1,8 +1,8 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{App, HttpServer};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| App::new().service(zero2prod::routes::hello))
+    HttpServer::new(|| App::new().service(webserver::routes::hello))
         .bind(("127.0.0.1", 8080))?
         .run()
         .await

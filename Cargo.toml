@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 actix-web = { workspace = true }
 actix-web-codegen = { workspace = true }
+log = { workspace = true }
+sqlx = { workspace = true }
 webserver = { path = "webserver" }
 
 [workspace]
@@ -16,3 +18,5 @@ members = [
 [workspace.dependencies]
 actix-web = "4.3.1"
 actix-web-codegen = "4.2.0"
+log = "0.4.17"
+sqlx = { version = "0.6.3", default-features = false, features = ["runtime-actix-rustls", "macros", "postgres", "uuid", "chrono", "migrate"] }

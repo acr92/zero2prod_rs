@@ -1,8 +1,5 @@
-use reqwest::Client;
-
 use crate::harness::spawn_app;
-use webserver::configuration::{get_configuration, pathbuf_relative_to_current_working_directory};
-use webserver::startup::{get_connection_pool, migrate_sql, run};
+use reqwest::Client;
 
 pub mod harness;
 

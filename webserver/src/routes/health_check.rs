@@ -1,7 +1,7 @@
-use actix_web::{HttpResponse, Responder};
+use actix_web::HttpResponse;
 use actix_web_codegen::get;
 
-#[get("/")]
-pub async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
+#[get("/health")]
+pub async fn hello() -> HttpResponse {
+    HttpResponse::Ok().body("OK")
 }

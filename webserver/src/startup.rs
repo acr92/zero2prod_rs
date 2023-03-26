@@ -5,6 +5,7 @@ use actix_web::web::Data;
 use actix_web::{App, HttpServer};
 use sqlx::migrate::MigrateError;
 use sqlx::{Error, PgPool};
+use tracing_actix_web::TracingLogger;
 
 use crate::configuration::DatabaseSettings;
 
@@ -20,6 +21,7 @@ pub async fn run(listener: TcpListener, connection_pool: PgPool) -> Result<Serve
     let pool = Data::new(connection_pool);
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(TracingLogger::default())
             .service(crate::routes::hello)
             .service(crate::routes::subscriptions)
             .app_data(pool.clone())

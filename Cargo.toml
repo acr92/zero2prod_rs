@@ -8,6 +8,7 @@ actix-web = { workspace = true }
 actix-web-codegen = { workspace = true }
 log = { workspace = true }
 sqlx = { workspace = true }
+tracing-bunyan-formatter = "0.3.6"
 webserver = { path = "webserver" }
 
 [workspace]

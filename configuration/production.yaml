@@ -1,0 +1,3 @@
+email_client:
+  sender_email: "arne.christian@rundereim.com"
+  base_url: "https://api.postmarkapp.com"

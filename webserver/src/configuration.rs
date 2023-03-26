@@ -8,16 +8,9 @@ use serde_aux::field_attributes::deserialize_number_from_string;
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
+    pub email_client: EmailClientSettings,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub application_port: u16,
-}
-
-impl TryInto<TcpListener> for Settings {
-    type Error = std::io::Error;
-
-    fn try_into(self) -> Result<TcpListener, Self::Error> {
-        TcpListener::bind(("127.0.0.1", self.application_port))
-    }
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -30,8 +23,30 @@ pub struct DatabaseSettings {
     pub database_name: String,
 }
 
+#[derive(serde::Deserialize, Clone)]
+pub struct EmailClientSettings {
+    pub base_url: String,
+    pub sender_email: String,
+    pub authorization_token: Secret<String>,
+    pub timeout_seconds: u64,
+}
+
+impl EmailClientSettings {
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_secs(self.timeout_seconds)
+    }
+}
+
+impl TryInto<TcpListener> for Settings {
+    type Error = std::io::Error;
+
+    fn try_into(self) -> Result<TcpListener, Self::Error> {
+        TcpListener::bind(("127.0.0.1", self.application_port))
+    }
+}
+
 impl DatabaseSettings {
-    pub fn connection_string(&self) -> String {
+    pub fn with_db(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
             self.username,
@@ -42,7 +57,7 @@ impl DatabaseSettings {
         )
     }
 
-    pub fn connection_string_without_db(&self) -> String {
+    pub fn without_db(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}",
             self.username,
@@ -67,9 +82,18 @@ pub fn pathbuf_relative_to_current_working_directory(path: Vec<&str>) -> PathBuf
 pub fn get_configuration(
     configuration_directory: PathBuf,
 ) -> Result<Settings, config::ConfigError> {
+    let environment: Environment = std::env::var("APP_ENVIRONMENT")
+        .unwrap_or_else(|_| "local".into())
+        .try_into()
+        .expect("Failed to parse APP_ENVIRONMENT.");
+    let environment_filename = format!("{}.yaml", environment.as_str());
+
     let settings = Config::builder()
         .add_source(config::File::from(
             configuration_directory.join("base.yaml"),
+        ))
+        .add_source(config::File::from(
+            configuration_directory.join(environment_filename),
         ))
         .add_source(
             config::Environment::with_prefix("APP")
@@ -79,4 +103,33 @@ pub fn get_configuration(
         .build()?;
 
     settings.try_deserialize::<Settings>()
+}
+
+pub enum Environment {
+    Local,
+    Production,
+}
+
+impl Environment {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Environment::Local => "local",
+            Environment::Production => "production",
+        }
+    }
+}
+
+impl TryFrom<String> for Environment {
+    type Error = String;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        match s.to_lowercase().as_str() {
+            "local" => Ok(Self::Local),
+            "production" => Ok(Self::Production),
+            other => Err(format!(
+                "{} is not a supported environment. Use either `local` or `production`.",
+                other
+            )),
+        }
+    }
 }

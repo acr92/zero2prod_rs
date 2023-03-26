@@ -13,7 +13,7 @@ webserver = { path = "webserver" }
 
 [workspace]
 members = [
-    "webserver"
+    "webserver",
 ]
 
 [workspace.dependencies]

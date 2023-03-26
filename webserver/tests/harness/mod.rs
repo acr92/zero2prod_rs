@@ -1,9 +1,13 @@
 use crate::harness::postgres::Postgres;
+use fake::{Fake, Faker};
+use secrecy::Secret;
 use sqlx::PgPool;
 use std::net::TcpListener;
+use std::time::Duration;
 use testcontainers::clients::Cli;
 use testcontainers::Container;
 use webserver::configuration::{get_configuration, pathbuf_relative_to_current_working_directory};
+use webserver::email::EmailClient;
 use webserver::startup::{get_connection_pool, migrate_sql, run};
 
 mod postgres;
@@ -32,7 +36,18 @@ pub async fn spawn_app(docker: &Cli) -> TestApp {
     let connection_pool = get_connection_pool(&config.database).await.unwrap();
     migrate_sql(&connection_pool).await.unwrap();
 
-    let server = run(listener, connection_pool)
+    let email_client = EmailClient::new(
+        config.email_client.base_url,
+        config
+            .email_client
+            .sender_email
+            .try_into()
+            .expect("Invalid email configuration"),
+        Secret::new(Faker.fake()),
+        Duration::from_secs(config.email_client.timeout_seconds),
+    );
+
+    let server = run(listener, connection_pool, email_client)
         .await
         .expect("Failed to bind address");
     let _ = tokio::spawn(server);

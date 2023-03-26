@@ -23,6 +23,13 @@ tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 uuid = { version = "1.3.0", features = ["v4"] }
 chrono = { version = "0.4.22", default-features = false, features = ["clock"] }
 tracing-actix-web = "0.7.3"
+validator = "0.16.0"
+rand = "0.8.5"
+unicode-segmentation = "1.10.1"
 
 [dev-dependencies]
+claims = "0.7.1"
+fake = "2.5.0"
+quickcheck = "1.0.3"
+quickcheck_macros = "1.0.0"
 testcontainers = { git = "https://github.com/testcontainers/testcontainers-rs.git" }

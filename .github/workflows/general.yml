@@ -23,6 +23,8 @@ jobs:
           key: sqlx-${{ env.SQLX_VERSION }}
       - name: Build
         run: cargo build --all
+      - name: Check sqlx-data.json is up-to-date
+        run: cargo sqlx prepare --check -- --bin zero2prod
       - name: Run tests
         run: cargo test --all
 

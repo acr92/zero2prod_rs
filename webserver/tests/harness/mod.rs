@@ -1,14 +1,18 @@
-use crate::harness::postgres::Postgres;
+use std::net::TcpListener;
+use std::time::Duration;
+
 use fake::{Fake, Faker};
 use secrecy::Secret;
 use sqlx::PgPool;
-use std::net::TcpListener;
-use std::time::Duration;
 use testcontainers::clients::Cli;
 use testcontainers::Container;
+use wiremock::MockServer;
+
 use webserver::configuration::{get_configuration, pathbuf_relative_to_current_working_directory};
 use webserver::email::EmailClient;
 use webserver::startup::{get_connection_pool, migrate_sql, run};
+
+use crate::harness::postgres::Postgres;
 
 mod postgres;
 
@@ -16,12 +20,16 @@ pub struct TestApp<'b> {
     pub address: String,
     pub db_pool: PgPool,
     pub postgres_container: Container<'b, Postgres>,
+    pub email_server: MockServer,
 }
 
 pub async fn spawn_app(docker: &Cli) -> TestApp {
     let configuration_path =
         pathbuf_relative_to_current_working_directory(vec!["..", "configuration"]);
     let mut config = get_configuration(configuration_path).unwrap();
+
+    let email_server = MockServer::start().await;
+    config.email_client.base_url = email_server.uri();
 
     let container = docker.run::<Postgres>(Postgres::default());
     config.database.port = container.get_host_port_ipv4(5432);
@@ -56,5 +64,18 @@ pub async fn spawn_app(docker: &Cli) -> TestApp {
         address,
         db_pool: pool,
         postgres_container: container,
+        email_server,
+    }
+}
+
+impl TestApp<'_> {
+    pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
+        reqwest::Client::new()
+            .post(&format!("{}/subscriptions", &self.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
     }
 }

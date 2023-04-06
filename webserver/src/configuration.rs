@@ -8,7 +8,7 @@ use serde_aux::field_attributes::deserialize_number_from_string;
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
-    pub email_client: EmailClientSettings,
+    pub email: EmailClientSettings,
     pub application: ApplicationSettings,
 }
 

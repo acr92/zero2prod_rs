@@ -63,10 +63,6 @@ pub async fn subscriptions(
         return HttpResponse::InternalServerError().finish();
     }
 
-    if transaction.commit().await.is_err() {
-        return HttpResponse::InternalServerError().finish();
-    }
-
     if send_confirmation_email(
         &email_client,
         new_subscriber,
@@ -76,6 +72,10 @@ pub async fn subscriptions(
     .await
     .is_err()
     {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    if transaction.commit().await.is_err() {
         return HttpResponse::InternalServerError().finish();
     }
 

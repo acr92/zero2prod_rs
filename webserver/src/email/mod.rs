@@ -26,6 +26,7 @@ impl EmailClient {
         }
     }
 
+    #[tracing::instrument(name = "Sending email", skip(self, html_body, text_body))]
     pub async fn send_email(
         &self,
         recipient: SubscriberEmail,
@@ -51,7 +52,11 @@ impl EmailClient {
             )
             .json(&body)
             .send()
-            .await?
+            .await
+            .map_err(|err| {
+                tracing::error!("Error sending email: {:?}", err);
+                err
+            })?
             .error_for_status()?;
         Ok(())
     }

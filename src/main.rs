@@ -1,6 +1,8 @@
 use std::net::TcpListener;
 
-use webserver::configuration::{get_configuration, pathbuf_relative_to_current_working_directory};
+use webserver::configuration::{
+    get_configuration, pathbuf_relative_to_current_working_directory, Settings,
+};
 use webserver::email::EmailClient;
 use webserver::startup::{get_connection_pool, migrate_sql, run};
 use webserver::telemetry::{get_subscriber, init_subscriber};
@@ -18,29 +20,37 @@ async fn main() -> std::io::Result<()> {
     migrate_sql(&connection_pool).await.unwrap();
 
     let sender_email = config
-        .email_client
+        .email
         .sender_email
         .clone()
         .try_into()
         .expect("Invalid email configuration");
-    let timeout = config.email_client.timeout();
+    let timeout = config.email.timeout();
     let email_client = EmailClient::new(
-        config.email_client.base_url,
+        config.email.base_url.clone(),
         sender_email,
-        config.email_client.authorization_token.clone(),
+        config.email.authorization_token.clone(),
         timeout,
     );
 
-    run(
-        tcp_listener,
-        connection_pool,
-        email_client,
-        config.application.base_url,
-    )
-    .await
-    .unwrap()
-    .await
-    .unwrap();
+    let base_url = get_base_url(config);
+
+    run(tcp_listener, connection_pool, email_client, base_url)
+        .await
+        .unwrap()
+        .await
+        .unwrap();
 
     Ok(())
+}
+
+fn get_base_url(config: Settings) -> String {
+    if matches!(config.application.port, 80 | 443) {
+        config.application.base_url
+    } else {
+        format!(
+            "{}:{}",
+            config.application.base_url, config.application.port
+        )
+    }
 }

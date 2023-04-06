@@ -30,7 +30,7 @@ pub async fn spawn_app(docker: &Cli) -> TestApp {
     let mut config = get_configuration(configuration_path).unwrap();
 
     let email_server = MockServer::start().await;
-    config.email_client.base_url = email_server.uri();
+    config.email.base_url = email_server.uri();
 
     let container = docker.run::<Postgres>(Postgres::default());
     config.database.port = container.get_host_port_ipv4(5432);
@@ -47,14 +47,14 @@ pub async fn spawn_app(docker: &Cli) -> TestApp {
     migrate_sql(&connection_pool).await.unwrap();
 
     let email_client = EmailClient::new(
-        config.email_client.base_url,
+        config.email.base_url,
         config
-            .email_client
+            .email
             .sender_email
             .try_into()
             .expect("Invalid email configuration"),
         Secret::new(Faker.fake()),
-        Duration::from_secs(config.email_client.timeout_seconds),
+        Duration::from_secs(config.email.timeout_seconds),
     );
 
     let server = run(

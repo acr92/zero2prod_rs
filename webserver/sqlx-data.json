@@ -14,5 +14,50 @@
       }
     },
     "query": "INSERT INTO subscriptions (id, email, name, subscribed_at)\n        VALUES ($1, $2, $3, $4)"
+  },
+  "35839caa03ff938adeb3fce0d9caa9ae4f74ad5df6ac64ba994495ed049cb506": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT id FROM subscription_tokens\n        WHERE token = $1\n        "
+  },
+  "6e2ef03b923284d49e728e5b5b1d9c27a9d3a8abd86f170cf75d2d452f76d4ba": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        UPDATE subscriptions\n        SET confirmed = true\n        WHERE id = $1\n        "
+  },
+  "a9bf5ab40aa30ae32aa90629d771b16d1e231fec186db31479845192b3cd32e6": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO subscription_tokens (id, token)\n        VALUES ($1, $2)"
   }
 }

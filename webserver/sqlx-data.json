@@ -35,6 +35,36 @@
     },
     "query": "\n        SELECT id FROM subscription_tokens\n        WHERE token = $1\n        "
   },
+  "6aff4fe4e3576a6b818d69dc987380837679a09662ca48ad2f5417c28d04858e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "email",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "confirmed",
+          "ordinal": 2,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT email, name, confirmed FROM subscriptions"
+  },
   "6e2ef03b923284d49e728e5b5b1d9c27a9d3a8abd86f170cf75d2d452f76d4ba": {
     "describe": {
       "columns": [],

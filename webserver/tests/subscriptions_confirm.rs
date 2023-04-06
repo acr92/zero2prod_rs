@@ -1,4 +1,3 @@
-use reqwest::Url;
 use testcontainers::clients::Cli;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};

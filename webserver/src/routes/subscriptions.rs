@@ -2,7 +2,7 @@ use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
 use actix_web_codegen::post;
 use chrono::Utc;
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
@@ -45,16 +45,25 @@ pub async fn subscriptions(
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
 
-    let subscriber_id = match insert_subscriber(&pool, &new_subscriber).await {
+    let mut transaction = match pool.begin().await {
+        Ok(transaction) => transaction,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let subscriber_id = match insert_subscriber(&mut transaction, &new_subscriber).await {
         Ok(subscriber_id) => subscriber_id,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
     let subscription_token = Uuid::new_v4().to_string();
-    if store_token(&pool, subscriber_id, &subscription_token)
+    if store_token(&mut transaction, subscriber_id, &subscription_token)
         .await
         .is_err()
     {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    if transaction.commit().await.is_err() {
         return HttpResponse::InternalServerError().finish();
     }
 
@@ -75,7 +84,7 @@ pub async fn subscriptions(
 
 #[tracing::instrument(name = "Storing token in the database", skip(pool, subscriber_token))]
 async fn store_token(
-    pool: &PgPool,
+    pool: &mut Transaction<'_, Postgres>,
     subscriber_id: Uuid,
     subscriber_token: &str,
 ) -> Result<(), sqlx::Error> {
@@ -99,7 +108,10 @@ async fn store_token(
     name = "Saving new subscriber details in the database",
     skip(pool, subscriber)
 )]
-async fn insert_subscriber(pool: &PgPool, subscriber: &NewSubscriber) -> Result<Uuid, sqlx::Error> {
+async fn insert_subscriber(
+    pool: &mut Transaction<'_, Postgres>,
+    subscriber: &NewSubscriber,
+) -> Result<Uuid, sqlx::Error> {
     let subscriber_id = Uuid::new_v4();
     sqlx::query!(
         r#"INSERT INTO subscriptions (id, email, name, subscribed_at)

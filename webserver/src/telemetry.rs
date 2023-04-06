@@ -21,10 +21,25 @@ where
 {
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter));
-    let formatting_layer = BunyanFormattingLayer::new(name, sink);
+    let formatting_layer = BunyanFormattingLayer::new(name.clone(), sink);
+
+    let tracer = opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(opentelemetry_otlp::new_exporter().tonic())
+        .with_trace_config(opentelemetry::sdk::trace::config().with_resource(
+            opentelemetry::sdk::Resource::new(vec![opentelemetry::KeyValue::new(
+                "service.name",
+                name,
+            )]),
+        ))
+        .install_simple()
+        .unwrap();
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+
     Registry::default()
         .with(env_filter)
         .with(JsonStorageLayer)
+        .with(telemetry)
         .with(formatting_layer)
 }
 

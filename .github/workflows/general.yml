@@ -45,6 +45,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
+      - name: Update apt
+        run: sudo apt-get update
+      - name: Install Protocol Buffers
+        run: sudo apt-get install protobuf-compiler
       - name: Build
         run: cargo build --all
       - name: Install sqlx-cli

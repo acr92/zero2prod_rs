@@ -21,6 +21,7 @@ pub struct TestApp<'b> {
     pub db_pool: PgPool,
     pub postgres_container: Container<'b, Postgres>,
     pub email_server: MockServer,
+    pub port: u16,
 }
 
 pub async fn spawn_app(docker: &Cli) -> TestApp {
@@ -40,6 +41,7 @@ pub async fn spawn_app(docker: &Cli) -> TestApp {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
+    config.application.base_url = address.clone();
 
     let connection_pool = get_connection_pool(&config.database).await.unwrap();
     migrate_sql(&connection_pool).await.unwrap();
@@ -55,13 +57,19 @@ pub async fn spawn_app(docker: &Cli) -> TestApp {
         Duration::from_secs(config.email_client.timeout_seconds),
     );
 
-    let server = run(listener, connection_pool, email_client)
-        .await
-        .expect("Failed to bind address");
+    let server = run(
+        listener,
+        connection_pool,
+        email_client,
+        config.application.base_url,
+    )
+    .await
+    .expect("Failed to bind address");
     let _ = tokio::spawn(server);
 
     TestApp {
         address,
+        port,
         db_pool: pool,
         postgres_container: container,
         email_server,

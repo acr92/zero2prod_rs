@@ -1,4 +1,5 @@
 use std::net::TcpListener;
+
 use webserver::configuration::{get_configuration, pathbuf_relative_to_current_working_directory};
 use webserver::email::EmailClient;
 use webserver::startup::{get_connection_pool, migrate_sql, run};
@@ -30,11 +31,16 @@ async fn main() -> std::io::Result<()> {
         timeout,
     );
 
-    run(tcp_listener, connection_pool, email_client)
-        .await
-        .unwrap()
-        .await
-        .unwrap();
+    run(
+        tcp_listener,
+        connection_pool,
+        email_client,
+        config.application.base_url,
+    )
+    .await
+    .unwrap()
+    .await
+    .unwrap();
 
     Ok(())
 }

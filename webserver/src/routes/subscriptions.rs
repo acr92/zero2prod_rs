@@ -1,3 +1,4 @@
+use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
 use actix_web_codegen::post;
 use chrono::Utc;
@@ -6,6 +7,7 @@ use uuid::Uuid;
 
 use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use crate::email::EmailClient;
+use crate::startup::ApplicationBaseUrl;
 
 #[derive(serde::Deserialize, Debug)]
 pub struct FormData {
@@ -25,7 +27,7 @@ impl TryInto<NewSubscriber> for FormData {
 
 #[tracing::instrument(
 name = "Adding new subscriber",
-skip(form, pool, email_client),
+skip(form, pool, email_client, base_url),
 fields(
 subscriber_email = % form.email,
 subscriber_name = % form.name
@@ -34,8 +36,9 @@ subscriber_name = % form.name
 #[post("/subscriptions")]
 pub async fn subscriptions(
     form: web::Form<FormData>,
-    pool: web::Data<PgPool>,
-    email_client: web::Data<EmailClient>,
+    pool: Data<PgPool>,
+    email_client: Data<EmailClient>,
+    base_url: Data<ApplicationBaseUrl>,
 ) -> HttpResponse {
     let new_subscriber = match form.0.try_into() {
         Ok(new_subscriber) => new_subscriber,
@@ -46,13 +49,7 @@ pub async fn subscriptions(
         return HttpResponse::InternalServerError().finish();
     }
 
-    if email_client
-        .send_email(
-            new_subscriber.email,
-            "Welcome!",
-            "Welcome to our site!",
-            "Welcome to our site!",
-        )
+    if send_confirmation_email(&email_client, new_subscriber, &base_url.0)
         .await
         .is_err()
     {
@@ -81,5 +78,38 @@ async fn insert_subscriber(pool: &PgPool, subscriber: &NewSubscriber) -> Result<
         tracing::error!("Failed to execute query: {:?}", e);
         e
     })?;
+    Ok(())
+}
+
+#[tracing::instrument(
+    name = "Send a confirmation email to the new subscriber",
+    skip(email_client, new_subscriber, base_url)
+)]
+async fn send_confirmation_email(
+    email_client: &Data<EmailClient>,
+    new_subscriber: NewSubscriber,
+    base_url: &str,
+) -> Result<(), reqwest::Error> {
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token=mytoken",
+        base_url
+    );
+    email_client
+        .send_email(
+            new_subscriber.email,
+            "Welcome!",
+            &format!(
+                "Welcome to our newsletter!<br />\
+                Click <a href=\"{}\">here</a> to confirm your subscription.",
+                confirmation_link
+            ),
+            &format!(
+                "Welcome to our newsletter!\n\
+                Visit {} to confirm your subscription.",
+                confirmation_link
+            ),
+        )
+        .await?;
+
     Ok(())
 }

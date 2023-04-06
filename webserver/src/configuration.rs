@@ -9,8 +9,15 @@ use serde_aux::field_attributes::deserialize_number_from_string;
 pub struct Settings {
     pub database: DatabaseSettings,
     pub email_client: EmailClientSettings,
+    pub application: ApplicationSettings,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct ApplicationSettings {
+    pub host: String,
     #[serde(deserialize_with = "deserialize_number_from_string")]
-    pub application_port: u16,
+    pub port: u16,
+    pub base_url: String,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -41,7 +48,7 @@ impl TryInto<TcpListener> for Settings {
     type Error = std::io::Error;
 
     fn try_into(self) -> Result<TcpListener, Self::Error> {
-        TcpListener::bind(("127.0.0.1", self.application_port))
+        TcpListener::bind((self.application.host, self.application.port))
     }
 }
 

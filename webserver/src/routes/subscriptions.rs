@@ -26,12 +26,12 @@ impl TryInto<NewSubscriber> for FormData {
 }
 
 #[tracing::instrument(
-name = "Adding new subscriber",
-skip(form, pool, email_client, base_url),
-fields(
-subscriber_email = % form.email,
-subscriber_name = % form.name
-)
+    name = "Adding new subscriber",
+    skip(form, pool, email_client, base_url),
+    fields(
+        subscriber_email = %form.email,
+        subscriber_name = %form.name
+    )
 )]
 #[post("/subscriptions")]
 pub async fn subscriptions(

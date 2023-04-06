@@ -1,13 +1,70 @@
 use actix_web::{web, HttpResponse};
 use actix_web_codegen::get;
+use sqlx::PgPool;
+use uuid::Uuid;
 
 #[derive(serde::Deserialize, Debug)]
 pub struct Parameters {
     subscription_token: String,
 }
 
-#[tracing::instrument(name = "Confirm new subscriber", skip(_parameters))]
+#[tracing::instrument(name = "Confirm new subscriber", skip(parameters, pool))]
 #[get("/subscriptions/confirm")]
-pub async fn subscriptions_confirm(_parameters: web::Query<Parameters>) -> HttpResponse {
+pub async fn subscriptions_confirm(
+    parameters: web::Query<Parameters>,
+    pool: web::Data<PgPool>,
+) -> HttpResponse {
+    let id = match get_subscriber_id_from_token(&pool, &parameters.subscription_token).await {
+        Ok(id) => id,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    match id {
+        Some(id) => {
+            if confirm_subscriber(&pool, id).await.is_err() {
+                return HttpResponse::InternalServerError().finish();
+            }
+        }
+        None => return HttpResponse::Unauthorized().finish(),
+    }
+
     HttpResponse::Ok().finish()
+}
+
+#[tracing::instrument(name = "Confirm subscriber in database", skip(pool))]
+async fn confirm_subscriber(pool: &PgPool, subscriber_id: Uuid) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        UPDATE subscriptions
+        SET confirmed = true
+        WHERE id = $1
+        "#,
+        subscriber_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+#[tracing::instrument(name = "Fetch subscriber id from token", skip(pool, token))]
+async fn get_subscriber_id_from_token(
+    pool: &PgPool,
+    token: &str,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        SELECT id FROM subscription_tokens
+        WHERE token = $1
+        "#,
+        token
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
+
+    Ok(result.map(|row| row.id))
 }

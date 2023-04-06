@@ -45,13 +45,27 @@ pub async fn subscriptions(
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
 
-    if insert_subscriber(&pool, &new_subscriber).await.is_err() {
+    let subscriber_id = match insert_subscriber(&pool, &new_subscriber).await {
+        Ok(subscriber_id) => subscriber_id,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let subscription_token = Uuid::new_v4().to_string();
+    if store_token(&pool, subscriber_id, &subscription_token)
+        .await
+        .is_err()
+    {
         return HttpResponse::InternalServerError().finish();
     }
 
-    if send_confirmation_email(&email_client, new_subscriber, &base_url.0)
-        .await
-        .is_err()
+    if send_confirmation_email(
+        &email_client,
+        new_subscriber,
+        &base_url.0,
+        &subscription_token,
+    )
+    .await
+    .is_err()
     {
         return HttpResponse::InternalServerError().finish();
     }
@@ -59,15 +73,38 @@ pub async fn subscriptions(
     HttpResponse::Ok().finish()
 }
 
+#[tracing::instrument(name = "Storing token in the database", skip(pool, subscriber_token))]
+async fn store_token(
+    pool: &PgPool,
+    subscriber_id: Uuid,
+    subscriber_token: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"INSERT INTO subscription_tokens (id, token)
+        VALUES ($1, $2)"#,
+        subscriber_id,
+        subscriber_token
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
+
+    Ok(())
+}
+
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
     skip(pool, subscriber)
 )]
-async fn insert_subscriber(pool: &PgPool, subscriber: &NewSubscriber) -> Result<(), sqlx::Error> {
+async fn insert_subscriber(pool: &PgPool, subscriber: &NewSubscriber) -> Result<Uuid, sqlx::Error> {
+    let subscriber_id = Uuid::new_v4();
     sqlx::query!(
         r#"INSERT INTO subscriptions (id, email, name, subscribed_at)
         VALUES ($1, $2, $3, $4)"#,
-        Uuid::new_v4(),
+        subscriber_id,
         subscriber.email.as_ref(),
         subscriber.name.as_ref(),
         Utc::now(),
@@ -78,7 +115,8 @@ async fn insert_subscriber(pool: &PgPool, subscriber: &NewSubscriber) -> Result<
         tracing::error!("Failed to execute query: {:?}", e);
         e
     })?;
-    Ok(())
+
+    Ok(subscriber_id)
 }
 
 #[tracing::instrument(
@@ -89,10 +127,11 @@ async fn send_confirmation_email(
     email_client: &Data<EmailClient>,
     new_subscriber: NewSubscriber,
     base_url: &str,
+    subscription_token: &str,
 ) -> Result<(), reqwest::Error> {
     let confirmation_link = format!(
-        "{}/subscriptions/confirm?subscription_token=mytoken",
-        base_url
+        "{}/subscriptions/confirm?subscription_token={}",
+        base_url, subscription_token
     );
     email_client
         .send_email(

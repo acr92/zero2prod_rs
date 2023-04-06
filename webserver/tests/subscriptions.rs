@@ -50,7 +50,7 @@ async fn subscribe_persist_the_new_subscriber() {
 
     assert_eq!(saved.email, "ursula_le_guin@gmail.com");
     assert_eq!(saved.name, "le guin");
-    assert_eq!(saved.confirmed, false);
+    assert!(!saved.confirmed);
 }
 
 #[actix_web::test]
@@ -135,18 +135,7 @@ async fn subscribe_sends_a_confirmation_email_with_a_link() {
         .await;
 
     let email_request = &app.email_server.received_requests().await.unwrap()[0];
-    let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
+    let confirmation_links = app.get_confirmation_links(email_request);
 
-    let get_link = |s: &str| {
-        let links: Vec<_> = linkify::LinkFinder::new()
-            .links(s)
-            .filter(|l| *l.kind() == linkify::LinkKind::Url)
-            .collect();
-        assert_eq!(1, links.len());
-        links[0].as_str().to_owned()
-    };
-
-    let html_link = get_link(&body["HtmlBody"].as_str().unwrap());
-    let text_link = get_link(&body["TextBody"].as_str().unwrap());
-    assert_eq!(html_link, text_link);
+    assert_eq!(confirmation_links.text, confirmation_links.html);
 }

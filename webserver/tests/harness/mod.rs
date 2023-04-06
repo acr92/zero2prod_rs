@@ -76,6 +76,11 @@ pub async fn spawn_app(docker: &Cli) -> TestApp {
     }
 }
 
+pub struct ConfirmationLinks {
+    pub html: reqwest::Url,
+    pub text: reqwest::Url,
+}
+
 impl TestApp<'_> {
     pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
         reqwest::Client::new()
@@ -85,5 +90,24 @@ impl TestApp<'_> {
             .send()
             .await
             .expect("Failed to execute request.")
+    }
+
+    pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
+        let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
+
+        let get_link = |s: &str| {
+            let links: Vec<_> = linkify::LinkFinder::new()
+                .links(s)
+                .filter(|l| *l.kind() == linkify::LinkKind::Url)
+                .collect();
+            assert_eq!(1, links.len());
+            let url = links[0].as_str().to_owned();
+            reqwest::Url::parse(&url).unwrap()
+        };
+
+        let html = get_link(body["HtmlBody"].as_str().unwrap());
+        let text = get_link(body["TextBody"].as_str().unwrap());
+
+        ConfirmationLinks { html, text }
     }
 }

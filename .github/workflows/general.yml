@@ -12,12 +12,6 @@ env:
   SQLX_FEATURES: "rustls,postgres"
   SQLX_OFFLINE: "true"
 
-_common_steps: &common_steps
-  - name: Update apt
-    run: sudo apt-get update
-  - name: Install Protocol Buffers
-    run: sudo apt-get install protobuf-compiler -y
-
 jobs:
   test:
     name: Test
@@ -28,7 +22,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
-      - *common_steps
+      - uses: ./.github/workflows/install_protobuf.yml@main
       - name: Build
         run: cargo build --all
       - name: Run tests
@@ -52,7 +46,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
-      - *common_steps
+      - uses: ./.github/workflows/install_protobuf.yml@main
       - name: Build
         run: cargo build --all
       - name: Install sqlx-cli
@@ -91,7 +85,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
-      - *common_steps
+      - uses: ./.github/workflows/install_protobuf.yml@main
       - name: Linting
         run: cargo clippy --all -- -D warnings
 
@@ -114,7 +108,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
-      - *common_steps
+      - uses: ./.github/workflows/install_protobuf.yml@main
       - name: Build
         run: cargo build --all
       - name: Install sqlx-cli

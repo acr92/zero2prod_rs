@@ -77,6 +77,24 @@
     },
     "query": "\n        UPDATE subscriptions\n        SET confirmed = true\n        WHERE id = $1\n        "
   },
+  "90f460d3769c158246a9c9a95ba2771c4d37fbb75abc9c182b59efd9676d89cc": {
+    "describe": {
+      "columns": [
+        {
+          "name": "email",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        SELECT email\n        FROM subscriptions\n        WHERE confirmed = true\n        "
+  },
   "a9bf5ab40aa30ae32aa90629d771b16d1e231fec186db31479845192b3cd32e6": {
     "describe": {
       "columns": [],

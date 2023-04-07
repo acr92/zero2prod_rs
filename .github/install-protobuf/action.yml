@@ -1,0 +1,12 @@
+name: 'Install Protocol Buffers'
+description: 'Update apt and install Protocol Buffers'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Update apt
+      run: sudo apt-get update
+      shell: bash
+    - name: Install Protocol Buffers
+      run: sudo apt-get install protobuf-compiler
+      shell: bash

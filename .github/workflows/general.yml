@@ -22,7 +22,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
-      - uses: ./.github/workflows/install_protobuf.yml@main
+      - name: Install Protocol Buffers
+        uses: ./.github/install-protobuf
       - name: Build
         run: cargo build --all
       - name: Run tests
@@ -46,7 +47,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
-      - uses: ./.github/workflows/install_protobuf.yml@main
+      - name: Install Protocol Buffers
+        uses: ./.github/install-protobuf
       - name: Build
         run: cargo build --all
       - name: Install sqlx-cli
@@ -85,7 +87,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
-      - uses: ./.github/workflows/install_protobuf.yml@main
+      - name: Install Protocol Buffers
+        uses: ./.github/install-protobuf
       - name: Linting
         run: cargo clippy --all -- -D warnings
 
@@ -108,7 +111,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
-      - uses: ./.github/workflows/install_protobuf.yml@main
+      - name: Install Protocol Buffers
+        uses: ./.github/install-protobuf
       - name: Build
         run: cargo build --all
       - name: Install sqlx-cli

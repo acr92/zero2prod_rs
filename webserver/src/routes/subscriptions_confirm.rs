@@ -1,7 +1,10 @@
 use actix_web::{web, HttpResponse};
 use actix_web_codegen::get;
+use anyhow::Context;
 use sqlx::PgPool;
 use uuid::Uuid;
+
+use crate::routes::SubscribeError;
 
 #[derive(serde::Deserialize, Debug)]
 pub struct Parameters {
@@ -13,22 +16,17 @@ pub struct Parameters {
 pub async fn subscriptions_confirm(
     parameters: web::Query<Parameters>,
     pool: web::Data<PgPool>,
-) -> HttpResponse {
-    let id = match get_subscriber_id_from_token(&pool, &parameters.subscription_token).await {
-        Ok(id) => id,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
+) -> Result<HttpResponse, SubscribeError> {
+    let id = get_subscriber_id_from_token(&pool, &parameters.subscription_token)
+        .await
+        .context("Failed to fetch subscriber id from token")?
+        .context("Unable to find subscription token")?;
 
-    match id {
-        Some(id) => {
-            if confirm_subscriber(&pool, id).await.is_err() {
-                return HttpResponse::InternalServerError().finish();
-            }
-        }
-        None => return HttpResponse::Unauthorized().finish(),
-    }
+    confirm_subscriber(&pool, id)
+        .await
+        .context("Failed to confirm subscriber")?;
 
-    HttpResponse::Ok().finish()
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[tracing::instrument(name = "Confirm subscriber in database", skip(pool))]
@@ -60,11 +58,7 @@ async fn get_subscriber_id_from_token(
         token
     )
     .fetch_optional(pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("Failed to execute query: {:?}", e);
-        e
-    })?;
+    .await?;
 
     Ok(result.map(|row| row.id))
 }

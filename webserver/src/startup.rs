@@ -40,6 +40,7 @@ pub async fn run(
             .service(routes::hello)
             .service(routes::subscriptions)
             .service(routes::subscriptions_confirm)
+            .service(routes::newsletters)
             .app_data(pool.clone())
             .app_data(email_client.clone())
             .app_data(base_url.clone())

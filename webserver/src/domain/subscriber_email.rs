@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
+use std::fmt::{Debug, Formatter};
 
-#[derive(Debug)]
 pub struct SubscriberEmail(String);
 
 impl TryFrom<String> for SubscriberEmail {
@@ -18,6 +18,12 @@ impl TryFrom<String> for SubscriberEmail {
 impl AsRef<str> for SubscriberEmail {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+impl Debug for SubscriberEmail {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 

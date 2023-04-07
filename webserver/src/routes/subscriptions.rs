@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use crate::email::EmailClient;
 use crate::startup::ApplicationBaseUrl;
+use crate::telemetry::error_chain_fmt;
 
 #[derive(thiserror::Error)]
 pub enum SubscribeError {
@@ -32,19 +33,6 @@ impl std::fmt::Debug for SubscribeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         error_chain_fmt(self, f)
     }
-}
-
-fn error_chain_fmt(
-    e: &impl std::error::Error,
-    f: &mut std::fmt::Formatter<'_>,
-) -> std::fmt::Result {
-    writeln!(f, "{}", e)?;
-    let mut current = e.source();
-    while let Some(cause) = current {
-        writeln!(f, "Caused by:\n\t{}", cause)?;
-        current = cause.source();
-    }
-    Ok(())
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -96,7 +84,7 @@ pub async fn subscriptions(
     send_confirmation_email(
         &email_client,
         new_subscriber,
-        &base_url.0,
+        base_url.get_ref().0.as_str(),
         &subscription_token,
     )
     .await
@@ -167,7 +155,7 @@ async fn send_confirmation_email(
     );
     email_client
         .send_email(
-            new_subscriber.email,
+            &new_subscriber.email,
             "Welcome!",
             &format!(
                 "Welcome to our newsletter!<br />\

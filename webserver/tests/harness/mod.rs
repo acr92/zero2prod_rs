@@ -2,7 +2,9 @@ use std::net::TcpListener;
 use std::time::Duration;
 
 use fake::{Fake, Faker};
+use reqwest::Response;
 use secrecy::Secret;
+use serde_json::Value;
 use sqlx::PgPool;
 use testcontainers::clients::Cli;
 use testcontainers::Container;
@@ -82,7 +84,7 @@ pub struct ConfirmationLinks {
 }
 
 impl TestApp<'_> {
-    pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
+    pub async fn post_subscriptions(&self, body: String) -> Response {
         reqwest::Client::new()
             .post(&format!("{}/subscriptions", &self.address))
             .header("Content-Type", "application/x-www-form-urlencoded")
@@ -93,7 +95,7 @@ impl TestApp<'_> {
     }
 
     pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
-        let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
+        let body: Value = serde_json::from_slice(&email_request.body).unwrap();
 
         let get_link = |s: &str| {
             let links: Vec<_> = linkify::LinkFinder::new()
@@ -109,5 +111,14 @@ impl TestApp<'_> {
         let text = get_link(body["TextBody"].as_str().unwrap());
 
         ConfirmationLinks { html, text }
+    }
+
+    pub async fn post_newsletters(&self, payload: &Value) -> Response {
+        reqwest::Client::new()
+            .post(&format!("{}/newsletters", &self.address))
+            .json(&payload)
+            .send()
+            .await
+            .unwrap()
     }
 }

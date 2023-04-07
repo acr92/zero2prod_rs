@@ -1,7 +1,9 @@
-use crate::domain::SubscriberEmail;
+use std::time::Duration;
+
 use reqwest::Client;
 use secrecy::{ExposeSecret, Secret};
-use std::time::Duration;
+
+use crate::domain::SubscriberEmail;
 
 pub struct EmailClient {
     http_client: Client,
@@ -29,7 +31,7 @@ impl EmailClient {
     #[tracing::instrument(name = "Sending email", skip(self, html_body, text_body))]
     pub async fn send_email(
         &self,
-        recipient: SubscriberEmail,
+        recipient: &SubscriberEmail,
         subject: &str,
         html_body: &str,
         text_body: &str,
@@ -74,13 +76,14 @@ struct SendEmailRequest<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use claims::{assert_err, assert_ok};
     use fake::faker::internet::en::SafeEmail;
     use fake::faker::lorem::en::{Paragraph, Sentence};
     use fake::{Fake, Faker};
     use wiremock::matchers::{any, header, header_exists, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    use super::*;
 
     #[tokio::test]
     async fn send_email_succeeds_if_the_server_returns_200() {
@@ -102,7 +105,7 @@ mod test {
         let content = content();
 
         let outcome = email_client
-            .send_email(subscriber_email, &subject, &content, &content)
+            .send_email(&subscriber_email, &subject, &content, &content)
             .await;
 
         assert_ok!(outcome);
@@ -124,7 +127,7 @@ mod test {
         let content = content();
 
         let outcome = email_client
-            .send_email(subscriber_email, &subject, &content, &content)
+            .send_email(&subscriber_email, &subject, &content, &content)
             .await;
 
         assert_err!(outcome);
@@ -133,14 +136,9 @@ mod test {
     #[tokio::test]
     async fn send_email_times_out_if_the_server_takes_too_long() {
         let mock_server = MockServer::start().await;
-        let email_client = EmailClient::new(
-            mock_server.uri(),
-            SafeEmail().fake::<String>().try_into().unwrap(),
-            Secret::new(Faker.fake()),
-            std::time::Duration::from_millis(200),
-        );
+        let email_client = email_client(&mock_server);
 
-        let response = ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(10));
+        let response = ResponseTemplate::new(200).set_delay(Duration::from_secs(10));
         Mock::given(any())
             .respond_with(response)
             .expect(1)
@@ -152,7 +150,7 @@ mod test {
         let content: String = Paragraph(1..2).fake();
 
         let outcome = email_client
-            .send_email(subscriber_email, &subject, &content, &content)
+            .send_email(&subscriber_email, &subject, &content, &content)
             .await;
 
         assert_err!(outcome);

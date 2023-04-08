@@ -1,6 +1,7 @@
 # Zero2Prod
 
-[![Build](https://github.com/acr92/zero2prod_rs/actions/workflows/general.yml/badge.svg)](https://github.com/acr92/zero2prod_rs/actions/workflows/general.yml)
+[![Backend](https://github.com/acr92/zero2prod_rs/actions/workflows/general.yml/badge.svg)](https://github.com/acr92/zero2prod_rs/actions/workflows/general.yml)
+[![Frontend](https://github.com/acr92/zero2prod_rs/actions/workflows/frontend.yml/badge.svg)](https://github.com/acr92/zero2prod_rs/actions/workflows/frontend.yml)
 [![Security audit](https://github.com/acr92/zero2prod_rs/actions/workflows/audit.yml/badge.svg)](https://github.com/acr92/zero2prod_rs/actions/workflows/audit.yml)
 
 This project is based on the book [Zero to Production in Rust](https://www.zero2prod.com) by Luca Palmieri. The goal is to learn Rust by building a production-ready web application from scratch, following the guidance provided by the author.

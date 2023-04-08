@@ -1,0 +1,36 @@
+name: Frontend
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+env:
+  NODE_VERSION: 19.8.1
+
+jobs:
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: bahmutov/npm-install@v1
+      - name: Lint
+        run: npm run lint
+        working-directory: ./frontend
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: bahmutov/npm-install@v1
+      - name: Build
+        run: npm run build
+        working-directory: ./frontend

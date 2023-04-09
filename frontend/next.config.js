@@ -1,14 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
+  reactStrictMode: true,
   rewrites: () => {
-    return [{
-      source: "/api/:path*",
-      destination: "http://127.0.0.1:8000/:path*"
-    }]
-  }
-}
+    return [
+      {
+        source: "/backend/:path*",
+        destination: "http://127.0.0.1:8000/:path*",
+      },
+    ];
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

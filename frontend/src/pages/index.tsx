@@ -1,19 +1,22 @@
 import Image from "next/image";
 import { Inter } from "next/font/google";
-import Navbar from "@/app/components/navbar";
+import Navbar from "@/components/navbar";
+import Head from "next/head";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: "Zero2Prod - Sign-up",
-};
-
 export default function Home() {
   return (
-    <div>
-      <Navbar />
+    <div className={"flex flex-col h-screen"}>
+      <Head>
+        <title>Zero2Prod - Sign-up</title>
+      </Head>
 
-      <div className="hero min-h-screen bg-base-200">
+      <div>
+        <Navbar />
+      </div>
+
+      <div className="hero h-screen bg-base-200">
         <div className="hero-content flex-col lg:flex-row-reverse">
           <div className="text-center lg:text-left">
             <h1 className="text-5xl font-bold">Sign-up!</h1>

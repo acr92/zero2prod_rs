@@ -8,6 +8,8 @@ database:
   username: "postgres"
   password: "password"
   database_name: "newsletter"
+auth:
+  authority: https://acr92-dev.eu.auth0.com
 email:
   base_url: "http://localhost"
   sender_email: "test@gmail.com"

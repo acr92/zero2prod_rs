@@ -1,4 +1,4 @@
-use serde_json::json;
+use serde_json::{json, Value};
 use testcontainers::clients::Cli;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};
@@ -48,6 +48,7 @@ async fn post_newsletters_does_not_send_email_to_unconfirmed_subscribers() {
     // Arrange
     let docker = Cli::default();
     let app = spawn_app(&docker).await;
+    let payload = payload();
 
     create_unconfirmed_subscriber(&app).await;
 
@@ -58,20 +59,13 @@ async fn post_newsletters_does_not_send_email_to_unconfirmed_subscribers() {
         .mount(&app.email_server)
         .await;
 
-    let payload = json!({
-        "title": "Newsletter",
-        "content": {
-            "text": "Newsletter\
-            This is my newsletter",
-            "html": "<h1>Newsletter</h1><br />Hello, this is my newsletter!",
-        }
-    });
-
     // Act
     let response = app.post_newsletters(&payload).await;
 
     // Assert
-    assert_eq!(200, response.status().as_u16());
+    let status = response.status().as_u16();
+    println!("{}", response.text().await.unwrap());
+    assert_eq!(200, status);
 }
 
 #[actix_web::test]
@@ -79,6 +73,7 @@ async fn post_newsletters_send_the_newsletter_to_all_confirmed_subscribers() {
     // Arrange
     let docker = Cli::default();
     let app = spawn_app(&docker).await;
+    let payload = payload();
 
     create_confirmed_subscriber(&app).await;
 
@@ -89,20 +84,50 @@ async fn post_newsletters_send_the_newsletter_to_all_confirmed_subscribers() {
         .mount(&app.email_server)
         .await;
 
-    let payload = json!({
+    // Act
+    let response = app.post_newsletters(&payload).await;
+
+    // Assert
+    assert_eq!(200, response.status().as_u16());
+}
+
+#[actix_web::test]
+async fn post_newsletters_requires_authentication() {
+    // Arrange
+    let docker = Cli::default();
+    let app = spawn_app(&docker).await;
+    let payload = payload();
+
+    create_confirmed_subscriber(&app).await;
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(0)
+        .mount(&app.email_server)
+        .await;
+
+    // Act
+    let response = reqwest::Client::new()
+        .post(&format!("{}/admin/newsletters", &app.address))
+        .json(&payload)
+        .send()
+        .await
+        .unwrap();
+
+    // Assert
+    assert_eq!(401, response.status().as_u16());
+}
+
+fn payload() -> Value {
+    json!({
         "title": "Ursula Le Guin",
         "content": {
             "text": "Newsletter\
             This is my newsletter",
             "html": "<h1>Newsletter</h1><br />Hello, this is my newsletter!",
         }
-    });
-
-    // Act
-    let response = app.post_newsletters(&payload).await;
-
-    // Assert
-    assert_eq!(200, response.status().as_u16());
+    })
 }
 
 async fn create_unconfirmed_subscriber(app: &TestApp<'_>) -> ConfirmationLinks {

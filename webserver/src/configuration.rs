@@ -1,3 +1,4 @@
+use actix_4_jwt_auth::OidcConfig;
 use std::net::TcpListener;
 use std::path::PathBuf;
 
@@ -10,6 +11,7 @@ pub struct Settings {
     pub database: DatabaseSettings,
     pub email: EmailClientSettings,
     pub application: ApplicationSettings,
+    pub auth: AuthSettings,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -36,6 +38,25 @@ pub struct EmailClientSettings {
     pub sender_email: String,
     pub authorization_token: Secret<String>,
     pub timeout_seconds: u64,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct AuthSettings {
+    pub authority: String,
+    pub jwks: Option<String>,
+}
+
+impl TryInto<OidcConfig> for AuthSettings {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<OidcConfig, Self::Error> {
+        if let Some(jwks) = self.jwks {
+            let key_set = serde_json::from_str(&jwks)?;
+            Ok(OidcConfig::Jwks(key_set))
+        } else {
+            Ok(OidcConfig::Issuer(self.authority.into()))
+        }
+    }
 }
 
 impl EmailClientSettings {

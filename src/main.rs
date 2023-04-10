@@ -1,7 +1,7 @@
 use std::net::TcpListener;
 
 use webserver::configuration::{
-    get_configuration, pathbuf_relative_to_current_working_directory, Settings,
+    get_configuration, pathbuf_relative_to_current_working_directory, ApplicationSettings,
 };
 use webserver::email::EmailClient;
 use webserver::startup::{get_connection_pool, migrate_sql, run};
@@ -33,24 +33,27 @@ async fn main() -> std::io::Result<()> {
         timeout,
     );
 
-    let base_url = get_base_url(config);
+    let base_url = get_base_url(config.application);
 
-    run(tcp_listener, connection_pool, email_client, base_url)
-        .await
-        .unwrap()
-        .await
-        .unwrap();
+    run(
+        tcp_listener,
+        connection_pool,
+        email_client,
+        base_url,
+        config.auth,
+    )
+    .await
+    .unwrap()
+    .await
+    .unwrap();
 
     Ok(())
 }
 
-fn get_base_url(config: Settings) -> String {
-    if matches!(config.application.port, 80 | 443) {
-        config.application.base_url
+fn get_base_url(config: ApplicationSettings) -> String {
+    if matches!(config.port, 80 | 443) {
+        config.base_url
     } else {
-        format!(
-            "{}:{}",
-            config.application.base_url, config.application.port
-        )
+        format!("{}:{}", config.base_url, config.port)
     }
 }

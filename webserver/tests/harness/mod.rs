@@ -2,6 +2,7 @@ use std::net::TcpListener;
 use std::time::Duration;
 
 use fake::{Fake, Faker};
+use reqwest::header::AUTHORIZATION;
 use reqwest::Response;
 use secrecy::Secret;
 use serde_json::Value;
@@ -10,12 +11,16 @@ use testcontainers::clients::Cli;
 use testcontainers::Container;
 use wiremock::MockServer;
 
-use webserver::configuration::{get_configuration, pathbuf_relative_to_current_working_directory};
+use crate::harness::jwks::{create_jwt_token, JWT_AUTHORITY};
+use webserver::configuration::{
+    get_configuration, pathbuf_relative_to_current_working_directory, AuthSettings,
+};
 use webserver::email::EmailClient;
 use webserver::startup::{get_connection_pool, migrate_sql, run};
 
 use crate::harness::postgres::Postgres;
 
+mod jwks;
 mod postgres;
 
 pub struct TestApp<'b> {
@@ -59,11 +64,17 @@ pub async fn spawn_app(docker: &Cli) -> TestApp {
         Duration::from_secs(config.email.timeout_seconds),
     );
 
+    let auth_settings = AuthSettings {
+        authority: JWT_AUTHORITY.to_string(),
+        jwks: Some(include_str!("jwk_public_key.json").to_string()),
+    };
+
     let server = run(
         listener,
         connection_pool,
         email_client,
         config.application.base_url,
+        auth_settings,
     )
     .await
     .expect("Failed to bind address");
@@ -115,8 +126,9 @@ impl TestApp<'_> {
 
     pub async fn post_newsletters(&self, payload: &Value) -> Response {
         reqwest::Client::new()
-            .post(&format!("{}/newsletters", &self.address))
+            .post(&format!("{}/admin/newsletters", &self.address))
             .json(&payload)
+            .header(AUTHORIZATION, format!("Bearer {}", create_jwt_token()))
             .send()
             .await
             .unwrap()

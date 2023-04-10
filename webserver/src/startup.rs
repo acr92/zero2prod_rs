@@ -1,14 +1,16 @@
+use actix_4_jwt_auth::biscuit::{Validation, ValidationOptions};
+use actix_4_jwt_auth::{Oidc, OidcBiscuitValidator};
 use std::net::TcpListener;
 
 use actix_web::dev::Server;
 use actix_web::web::Data;
-use actix_web::{App, HttpServer};
+use actix_web::{web, App, HttpServer};
 use sqlx::migrate::MigrateError;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Error, PgPool};
 use tracing_actix_web::TracingLogger;
 
-use crate::configuration::DatabaseSettings;
+use crate::configuration::{AuthSettings, DatabaseSettings};
 use crate::email::EmailClient;
 use crate::routes;
 
@@ -30,17 +32,32 @@ pub async fn run(
     connection_pool: PgPool,
     email_client: EmailClient,
     base_url: String,
-) -> Result<Server, Error> {
+    auth_settings: AuthSettings,
+) -> Result<Server, anyhow::Error> {
     let pool = Data::new(connection_pool);
     let email_client = Data::new(email_client);
     let base_url = Data::new(ApplicationBaseUrl(base_url));
+    let oidc = Oidc::new(auth_settings.clone().try_into()?).await.unwrap();
+
+    let biscuit_validator = OidcBiscuitValidator {
+        options: ValidationOptions {
+            issuer: Validation::Validate(auth_settings.authority + "/"),
+            ..ValidationOptions::default()
+        },
+    };
+
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
             .service(routes::hello)
             .service(routes::subscriptions)
             .service(routes::subscriptions_confirm)
-            .service(routes::newsletters)
+            .service(
+                web::scope("/admin")
+                    .wrap(biscuit_validator.clone())
+                    .service(routes::newsletters),
+            )
+            .app_data(oidc.clone())
             .app_data(pool.clone())
             .app_data(email_client.clone())
             .app_data(base_url.clone())
